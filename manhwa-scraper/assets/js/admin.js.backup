@@ -1,0 +1,1278 @@
+/**
+ * Manhwa Scraper Admin JavaScript
+ */
+
+(function ($) {
+  "use strict";
+
+  // =====================================================
+  // Helper Functions
+  // =====================================================
+
+  function showSpinner($spinner) {
+    $spinner.addClass("is-active");
+  }
+
+  function hideSpinner($spinner) {
+    $spinner.removeClass("is-active");
+  }
+
+  function showNotice(message, type) {
+    var $notice = $('<div class="notice notice-' + type + ' is-dismissible"><p>' + message + "</p></div>");
+    $(".mws-wrap h1").after($notice);
+
+    // Auto dismiss
+    setTimeout(function () {
+      $notice.fadeOut(function () {
+        $(this).remove();
+      });
+    }, 5000);
+  }
+
+  function downloadFile(content, filename) {
+    var blob = new Blob([content], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () {
+        showNotice(mwsData.strings.success + " - Copied to clipboard", "success");
+      });
+    } else {
+      // Fallback
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      showNotice(mwsData.strings.success + " - Copied to clipboard", "success");
+    }
+  }
+
+  // =====================================================
+  // Dashboard Page
+  // =====================================================
+
+  // Test single connection
+  $(document).on("click", ".mws-test-connection", function () {
+    var $btn = $(this);
+    var $item = $btn.closest(".mws-source-item");
+    var $badge = $item.find(".mws-status-badge");
+    var source = $btn.data("source");
+
+    $btn.prop("disabled", true);
+    $badge.removeClass("success error pending").addClass("pending").text("Testing...");
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_test_connection",
+        nonce: mwsData.nonce,
+        source: source,
+      },
+      success: function (response) {
+        if (response.success && response.data.result.success) {
+          $badge
+            .removeClass("pending")
+            .addClass("success")
+            .text("OK (" + response.data.result.duration_ms + "ms)");
+        } else {
+          var error = response.data.result.error || "Connection failed";
+          $badge.removeClass("pending").addClass("error").text("Error");
+        }
+      },
+      error: function () {
+        $badge.removeClass("pending").addClass("error").text("Error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+      },
+    });
+  });
+
+  // Test all connections
+  $(document).on("click", ".mws-test-all-connections", function () {
+    $(".mws-test-connection").each(function () {
+      $(this).trigger("click");
+    });
+  });
+
+  // =====================================================
+  // Import Page
+  // =====================================================
+
+  // =====================================================
+  // Bulk Import Mode (on Import Page)
+  // =====================================================
+
+  var mwsBulkScrapedData = [];
+  var isBulkMode = false;
+
+  // Toggle between single and bulk mode
+  $("#mws-toggle-mode").on("click", function () {
+    isBulkMode = !isBulkMode;
+    var $btn = $(this);
+    var $icon = $btn.find(".dashicons");
+    var $description = $("#mws-mode-description");
+    var $btnText = $("#mws-btn-text");
+
+    if (isBulkMode) {
+      // Switch to bulk mode
+      $("#mws-single-mode").hide();
+      $("#mws-bulk-mode").show();
+      $("#mws-preview-section").hide();
+      $("#mws-bulk-results-section").show();
+      $icon.removeClass("dashicons-list-view").addClass("dashicons-admin-page");
+      $btn.html('<span class="dashicons dashicons-admin-page" style="margin-top: 4px;"></span> Switch to Single Mode');
+      $description.text("Currently in Bulk Mode. You can scrape multiple manhwa at once.");
+      $btnText.text("Scrape All URLs");
+    } else {
+      // Switch to single mode
+      $("#mws-single-mode").show();
+      $("#mws-bulk-mode").hide();
+      $("#mws-preview-section").show();
+      $("#mws-bulk-results-section").hide();
+      $icon.removeClass("dashicons-admin-page").addClass("dashicons-list-view");
+      $btn.html('<span class="dashicons dashicons-list-view" style="margin-top: 4px;"></span> Switch to Bulk Mode');
+      $description.text("Currently in Single Mode. Switch to Bulk Mode to scrape multiple manhwa at once.");
+      $btnText.text("Scrape Metadata");
+    }
+  });
+
+  // Scrape form submit - handles both single and bulk mode
+  $("#mws-import-form").on("submit", function (e) {
+    e.preventDefault();
+
+    if (isBulkMode) {
+      handleBulkScrape();
+    } else {
+      handleSingleScrape();
+    }
+  });
+
+  // Single scrape handler (original functionality)
+  function handleSingleScrape() {
+    var url = $("#mws-url").val();
+    var $spinner = $("#mws-spinner");
+    var $btn = $("#mws-scrape-btn");
+
+    if (!url) {
+      showNotice("Please enter a URL", "error");
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+    $("#mws-preview-section").hide();
+    $("#mws-json-section").hide();
+    $("#mws-result-section").hide();
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_scrape_single",
+        nonce: mwsData.nonce,
+        url: url,
+      },
+      success: function (response) {
+        if (response.success) {
+          mwsScrapedData = response.data.data;
+          displayPreview(mwsScrapedData);
+          $("#mws-preview-section").show();
+          showNotice(response.data.message, "success");
+        } else {
+          showNotice(response.data.message || mwsData.strings.error, "error");
+        }
+      },
+      error: function (xhr, status, error) {
+        showNotice(mwsData.strings.error + ": " + error, "error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  }
+
+  // Bulk scrape handler
+  function handleBulkScrape() {
+    var urlsText = $("#mws-urls-bulk").val().trim();
+    var delay = parseInt($("#mws-delay").val()) || 2000;
+    var $spinner = $("#mws-spinner");
+    var $btn = $("#mws-scrape-btn");
+    var $progress = $("#mws-progress");
+
+    if (!urlsText) {
+      showNotice("Please enter at least one URL", "error");
+      return;
+    }
+
+    // Parse URLs (one per line)
+    var urls = urlsText
+      .split("\n")
+      .map(function (url) {
+        return url.trim();
+      })
+      .filter(function (url) {
+        return url.length > 0 && url.startsWith("http");
+      });
+
+    if (urls.length === 0) {
+      showNotice("No valid URLs found", "error");
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+    $progress.show();
+    $("#mws-bulk-results-list").empty();
+    $("#mws-bulk-summary").hide();
+    $("#mws-bulk-import-options").hide();
+    $("#mws-bulk-import-actions").hide();
+
+    mwsBulkScrapedData = [];
+    var successCount = 0;
+    var errorCount = 0;
+
+    // Scrape URLs sequentially with delay
+    scrapeUrlSequentially(urls, 0, delay, function (index, total, result, error) {
+      // Progress callback
+      var percent = Math.round(((index + 1) / total) * 100);
+      $progress.text("Progress: " + (index + 1) + "/" + total + " (" + percent + "%)");
+
+      if (result) {
+        mwsBulkScrapedData.push(result);
+        successCount++;
+        displayBulkResultItem(result, index, false);
+      } else {
+        errorCount++;
+        displayBulkResultItem({ title: urls[index], error: error }, index, true);
+      }
+
+      // Complete callback
+      if (index === total - 1) {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+        $progress.hide();
+
+        // Show summary
+        var summaryText = successCount + " succeeded, " + errorCount + " failed out of " + total + " URLs";
+        $("#mws-bulk-summary-text").text(summaryText);
+        $("#mws-bulk-summary").show();
+
+        if (successCount > 0) {
+          $("#mws-bulk-import-options").show();
+          $("#mws-bulk-import-actions").show();
+          $("#mws-bulk-import-count").text("(" + successCount + ")");
+        }
+
+        showNotice("Bulk scraping completed: " + summaryText, successCount > 0 ? "success" : "warning");
+      }
+    });
+  }
+
+  // Scrape URLs sequentially with delay
+  function scrapeUrlSequentially(urls, index, delay, callback) {
+    if (index >= urls.length) {
+      return;
+    }
+
+    var url = urls[index];
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_scrape_single",
+        nonce: mwsData.nonce,
+        url: url,
+      },
+      success: function (response) {
+        if (response.success) {
+          callback(index, urls.length, response.data.data, null);
+        } else {
+          callback(index, urls.length, null, response.data.message || "Unknown error");
+        }
+      },
+      error: function (xhr, status, error) {
+        callback(index, urls.length, null, error);
+      },
+      complete: function () {
+        // Wait before next request
+        if (index < urls.length - 1) {
+          setTimeout(function () {
+            scrapeUrlSequentially(urls, index + 1, delay, callback);
+          }, delay);
+        } else {
+          callback(index, urls.length, null, null);
+        }
+      },
+    });
+  }
+
+  // Display single bulk result item
+  function displayBulkResultItem(data, index, isError) {
+    var $list = $("#mws-bulk-results-list");
+
+    if (isError) {
+      $list.append(
+        '<div class="mws-bulk-item error" style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #dc3232; border-left: 4px solid #dc3232; border-radius: 4px;">' +
+          '<div style="color: #dc3232; font-weight: 600; margin-bottom: 5px;">❌ Failed</div>' +
+          '<div style="font-size: 13px; color: #646970;">' +
+          data.title +
+          "</div>" +
+          '<div style="font-size: 12px; color: #dc3232; margin-top: 5px;">Error: ' +
+          data.error +
+          "</div>" +
+          "</div>"
+      );
+    } else {
+      var coverImg = data.thumbnail_url
+        ? '<img src="' + data.thumbnail_url + '" style="width: 80px; height: 120px; object-fit: cover; border-radius: 4px; margin-right: 15px;">'
+        : '<div style="width: 80px; height: 120px; background: #f0f0f1; border-radius: 4px; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 32px;">📚</div>';
+
+      var genresBadges = "";
+      if (data.genres && data.genres.length) {
+        genresBadges = data.genres
+          .slice(0, 5)
+          .map(function (g) {
+            return '<span style="display: inline-block; padding: 2px 8px; background: #f0f0f1; border-radius: 3px; font-size: 11px; margin-right: 4px; margin-top: 4px;">' + g + "</span>";
+          })
+          .join("");
+      }
+
+      $list.append(
+        '<div class="mws-bulk-item" data-index="' +
+          index +
+          '" style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #c3c4c7; border-left: 4px solid #2271b1; border-radius: 4px; display: flex;">' +
+          '<div style="flex-shrink: 0;">' +
+          coverImg +
+          "</div>" +
+          '<div style="flex: 1; min-width: 0;">' +
+          '<h4 style="margin: 0 0 5px 0; font-size: 15px;">' +
+          data.title +
+          "</h4>" +
+          (data.alternative_title ? '<div style="font-size: 12px; color: #646970; margin-bottom: 8px;">' + data.alternative_title + "</div>" : "") +
+          '<div style="margin-bottom: 8px;">' +
+          '<span style="display: inline-block; padding: 3px 8px; background: #2271b1; color: #fff; border-radius: 3px; font-size: 11px; margin-right: 6px;">' +
+          (data.status || "Ongoing") +
+          "</span>" +
+          '<span style="display: inline-block; padding: 3px 8px; background: #f0f0f1; border-radius: 3px; font-size: 11px; margin-right: 6px;">' +
+          (data.type || "Manhwa") +
+          "</span>" +
+          '<span style="display: inline-block; padding: 3px 8px; background: #f0f0f1; border-radius: 3px; font-size: 11px;">' +
+          "📚 " +
+          (data.total_chapters || 0) +
+          " Ch" +
+          "</span>" +
+          (data.rating ? ' <span style="display: inline-block; padding: 3px 8px; background: #ffb900; color: #fff; border-radius: 3px; font-size: 11px; margin-left: 6px;">⭐ ' + data.rating + "</span>" : "") +
+          "</div>" +
+          '<div style="margin-bottom: 8px;">' +
+          genresBadges +
+          "</div>" +
+          '<div style="font-size: 13px; color: #646970; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">' +
+          (data.description || "") +
+          "</div>" +
+          "</div>" +
+          "</div>"
+      );
+    }
+  }
+
+  // Bulk import all
+  $("#mws-bulk-import-btn").on("click", function () {
+    if (!mwsBulkScrapedData || mwsBulkScrapedData.length === 0) {
+      showNotice("No data to import", "error");
+      return;
+    }
+
+    var $spinner = $("#mws-bulk-import-spinner");
+    var $btn = $(this);
+    var downloadCover = $("#mws-bulk-download-cover").is(":checked");
+    var createPost = $("#mws-bulk-create-post").is(":checked");
+
+    if (!confirm("Import " + mwsBulkScrapedData.length + " manhwa?")) {
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_import_manhwa",
+        nonce: mwsData.nonce,
+        data: JSON.stringify(mwsBulkScrapedData),
+        download_cover: downloadCover ? "true" : "false",
+        create_post: createPost ? "true" : "false",
+      },
+      success: function (response) {
+        if (response.success) {
+          showNotice(response.data.message, "success");
+          displayImportResult(response.data.result);
+        } else {
+          showNotice(response.data.message || mwsData.strings.error, "error");
+        }
+      },
+      error: function (xhr, status, error) {
+        showNotice(mwsData.strings.error + ": " + error, "error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  });
+
+  // Bulk export JSON
+  $("#mws-bulk-export-json-btn").on("click", function () {
+    if (!mwsBulkScrapedData || mwsBulkScrapedData.length === 0) {
+      showNotice("No data to export", "error");
+      return;
+    }
+
+    var json = JSON.stringify(
+      {
+        export_date: new Date().toISOString(),
+        version: "1.0",
+        source: "Manhwa Metadata Scraper",
+        count: mwsBulkScrapedData.length,
+        manhwa: mwsBulkScrapedData,
+      },
+      null,
+      2
+    );
+
+    downloadFile(json, "manhwa-bulk-export-" + Date.now() + ".json");
+    showNotice("Exported " + mwsBulkScrapedData.length + " manhwa to JSON", "success");
+  });
+
+  // Display preview
+  function displayPreview(data) {
+    $("#mws-preview-title").text(data.title);
+    $("#mws-preview-status").text(data.status);
+    $("#mws-preview-type").text(data.type);
+    $("#mws-preview-chapters").text(data.total_chapters + " chapters");
+    $("#mws-preview-description").text(data.description);
+
+    // Alternative title
+    if (data.alternative_title) {
+      $("#mws-preview-alt-title").text(data.alternative_title).show();
+    } else {
+      $("#mws-preview-alt-title").hide();
+    }
+
+    // Rating
+    if (data.rating) {
+      var stars = "★".repeat(Math.round(data.rating)) + "☆".repeat(10 - Math.round(data.rating));
+      $("#mws-preview-rating").html(stars.substring(0, 10) + " " + data.rating);
+    } else {
+      $("#mws-preview-rating").empty();
+    }
+
+    // Cover image
+    if (data.thumbnail_url) {
+      $("#mws-preview-image").attr("src", data.thumbnail_url).show();
+    } else {
+      $("#mws-preview-image").hide();
+    }
+
+    // Genres
+    var $genres = $("#mws-preview-genres").empty();
+    if (data.genres && data.genres.length) {
+      data.genres.forEach(function (genre) {
+        $genres.append('<span class="mws-badge">' + genre + "</span>");
+      });
+    }
+
+    // Author
+    if (data.author) {
+      $("#mws-preview-author").text(data.author);
+      $("#mws-row-author").show();
+    } else {
+      $("#mws-row-author").hide();
+    }
+
+    // Artist
+    if (data.artist) {
+      $("#mws-preview-artist").text(data.artist);
+      $("#mws-row-artist").show();
+    } else {
+      $("#mws-row-artist").hide();
+    }
+
+    // Release year
+    if (data.release_year) {
+      $("#mws-preview-year").text(data.release_year);
+      $("#mws-row-year").show();
+    } else {
+      $("#mws-row-year").hide();
+    }
+
+    // Views
+    if (data.views) {
+      $("#mws-preview-views").text(data.views.toLocaleString() + " views");
+      $("#mws-row-views").show();
+    } else {
+      $("#mws-row-views").hide();
+    }
+
+    // Updated on
+    if (data.updated_on) {
+      $("#mws-preview-updated").text(data.updated_on);
+      $("#mws-row-updated").show();
+    } else {
+      $("#mws-row-updated").hide();
+    }
+
+    // Chapters
+    var $chapters = $("#mws-chapters-list").empty();
+    $("#mws-chapters-count").text(data.total_chapters);
+
+    if (data.chapters && data.chapters.length) {
+      var displayChapters = data.chapters.slice(0, 20);
+      displayChapters.forEach(function (chapter) {
+        var date = chapter.date ? '<span class="mws-chapter-date">' + chapter.date + "</span>" : "";
+        $chapters.append('<div class="mws-chapter-item">' + '<span class="mws-chapter-number">Ch. ' + chapter.number + "</span>" + chapter.title + date + "</div>");
+      });
+
+      if (data.chapters.length > 20) {
+        $chapters.append('<div class="mws-chapter-item" style="text-align: center; color: #646970;">... and ' + (data.chapters.length - 20) + " more chapters</div>");
+      }
+    }
+  }
+
+  // Import button
+  $("#mws-import-btn").on("click", function () {
+    if (!mwsScrapedData) {
+      showNotice("No data to import", "error");
+      return;
+    }
+
+    var $spinner = $("#mws-import-spinner");
+    var $btn = $(this);
+    var downloadCover = $("#mws-download-cover").is(":checked");
+    var createPost = $("#mws-create-post").is(":checked");
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_import_manhwa",
+        nonce: mwsData.nonce,
+        data: JSON.stringify([mwsScrapedData]),
+        download_cover: downloadCover ? "true" : "false",
+        create_post: createPost ? "true" : "false",
+      },
+      success: function (response) {
+        if (response.success) {
+          showNotice(response.data.message, "success");
+          displayImportResult(response.data.result);
+        } else {
+          showNotice(response.data.message || mwsData.strings.error, "error");
+        }
+      },
+      error: function (xhr, status, error) {
+        showNotice(mwsData.strings.error + ": " + error, "error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  });
+
+  // Display import result
+  function displayImportResult(result) {
+    var $content = $("#mws-result-content").empty();
+
+    $content.append("<p><strong>Imported:</strong> " + result.imported + " manhwa</p>");
+
+    if (result.posts && result.posts.length) {
+      var $list = $("<ul></ul>");
+      result.posts.forEach(function (post) {
+        $list.append('<li><a href="' + post.edit_url + '" target="_blank">' + post.title + "</a></li>");
+      });
+      $content.append("<p><strong>Created Posts:</strong></p>").append($list);
+    }
+
+    if (result.errors && result.errors.length) {
+      var $errors = $('<ul style="color: #dc3232;"></ul>');
+      result.errors.forEach(function (err) {
+        $errors.append("<li>" + err.title + ": " + err.error + "</li>");
+      });
+      $content.append("<p><strong>Errors:</strong></p>").append($errors);
+    }
+
+    $("#mws-result-section").show();
+  }
+
+  // Export JSON button
+  $("#mws-export-json-btn").on("click", function () {
+    if (!mwsScrapedData) {
+      showNotice("No data to export", "error");
+      return;
+    }
+
+    var json = JSON.stringify(
+      {
+        export_date: new Date().toISOString(),
+        version: "1.0",
+        source: "Manhwa Metadata Scraper",
+        manhwa: [mwsScrapedData],
+      },
+      null,
+      2
+    );
+
+    downloadFile(json, "manhwa-export-" + mwsScrapedData.slug + ".json");
+  });
+
+  // Copy JSON button
+  $("#mws-copy-json-btn").on("click", function () {
+    if (!mwsScrapedData) {
+      showNotice("No data to copy", "error");
+      return;
+    }
+
+    var json = JSON.stringify(mwsScrapedData, null, 2);
+    copyToClipboard(json);
+
+    $("#mws-json-output").val(json);
+    $("#mws-json-section").show();
+  });
+
+  // =====================================================
+  // Bulk Import Mode (on Import Page)
+  // =====================================================
+
+  var mwsBulkScrapedData = [];
+  var isBulkMode = false;
+
+  // Toggle between single and bulk mode
+  $("#mws-toggle-mode").on("click", function () {
+    isBulkMode = !isBulkMode;
+    var $btn = $(this);
+    var $icon = $btn.find(".dashicons");
+    var $description = $("#mws-mode-description");
+    var $btnText = $("#mws-btn-text");
+
+    if (isBulkMode) {
+      // Switch to bulk mode
+      $("#mws-single-mode").hide();
+      $("#mws-bulk-mode").show();
+      $("#mws-preview-section").hide();
+      $("#mws-bulk-results-section").show();
+      $icon.removeClass("dashicons-list-view").addClass("dashicons-admin-page");
+      $btn.html('<span class="dashicons dashicons-admin-page" style="margin-top: 4px;"></span> Switch to Single Mode');
+      $description.text("Currently in Bulk Mode. You can scrape multiple manhwa at once.");
+      $btnText.text("Scrape All URLs");
+    } else {
+      // Switch to single mode
+      $("#mws-single-mode").show();
+      $("#mws-bulk-mode").hide();
+      $("#mws-preview-section").show();
+      $("#mws-bulk-results-section").hide();
+      $icon.removeClass("dashicons-admin-page").addClass("dashicons-list-view");
+      $btn.html('<span class="dashicons dashicons-list-view" style="margin-top: 4px;"></span> Switch to Bulk Mode');
+      $description.text("Currently in Single Mode. Switch to Bulk Mode to scrape multiple manhwa at once.");
+      $btnText.text("Scrape Metadata");
+    }
+  });
+
+  // Modify form submit to handle bulk mode
+  $("#mws-import-form")
+    .off("submit")
+    .on("submit", function (e) {
+      e.preventDefault();
+
+      if (isBulkMode) {
+        handleBulkScrape();
+      } else {
+        handleSingleScrape();
+      }
+    });
+
+  // Single scrape handler (original functionality)
+  function handleSingleScrape() {
+    var url = $("#mws-url").val();
+    var $spinner = $("#mws-spinner");
+    var $btn = $("#mws-scrape-btn");
+
+    if (!url) {
+      showNotice("Please enter a URL", "error");
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+    $("#mws-preview-section").hide();
+    $("#mws-json-section").hide();
+    $("#mws-result-section").hide();
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_scrape_single",
+        nonce: mwsData.nonce,
+        url: url,
+      },
+      success: function (response) {
+        if (response.success) {
+          mwsScrapedData = response.data.data;
+          displayPreview(mwsScrapedData);
+          $("#mws-preview-section").show();
+          showNotice(response.data.message, "success");
+        } else {
+          showNotice(response.data.message || mwsData.strings.error, "error");
+        }
+      },
+      error: function (xhr, status, error) {
+        showNotice(mwsData.strings.error + ": " + error, "error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  }
+
+  // Bulk scrape handler
+  function handleBulkScrape() {
+    var urlsText = $("#mws-urls-bulk").val().trim();
+    var delay = parseInt($("#mws-delay").val()) || 2000;
+    var $spinner = $("#mws-spinner");
+    var $btn = $("#mws-scrape-btn");
+    var $progress = $("#mws-progress");
+
+    if (!urlsText) {
+      showNotice("Please enter at least one URL", "error");
+      return;
+    }
+
+    // Parse URLs (one per line)
+    var urls = urlsText
+      .split("\n")
+      .map(function (url) {
+        return url.trim();
+      })
+      .filter(function (url) {
+        return url.length > 0 && url.startsWith("http");
+      });
+
+    if (urls.length === 0) {
+      showNotice("No valid URLs found", "error");
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+    $progress.show();
+    $("#mws-bulk-results-list").empty();
+    $("#mws-bulk-summary").hide();
+    $("#mws-bulk-import-options").hide();
+    $("#mws-bulk-import-actions").hide();
+
+    mwsBulkScrapedData = [];
+    var successCount = 0;
+    var errorCount = 0;
+
+    // Scrape URLs sequentially with delay
+    scrapeUrlSequentially(urls, 0, delay, function (index, total, result, error) {
+      // Progress callback
+      var percent = Math.round(((index + 1) / total) * 100);
+      $progress.text("Progress: " + (index + 1) + "/" + total + " (" + percent + "%)");
+
+      if (result) {
+        mwsBulkScrapedData.push(result);
+        successCount++;
+        displayBulkResultItem(result, index, false);
+      } else {
+        errorCount++;
+        displayBulkResultItem({ title: urls[index], error: error }, index, true);
+      }
+
+      // Complete callback
+      if (index === total - 1) {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+        $progress.hide();
+
+        // Show summary
+        var summaryText = successCount + " succeeded, " + errorCount + " failed out of " + total + " URLs";
+        $("#mws-bulk-summary-text").text(summaryText);
+        $("#mws-bulk-summary").show();
+
+        if (successCount > 0) {
+          $("#mws-bulk-import-options").show();
+          $("#mws-bulk-import-actions").show();
+          $("#mws-bulk-import-count").text("(" + successCount + ")");
+        }
+
+        showNotice("Bulk scraping completed: " + summaryText, successCount > 0 ? "success" : "warning");
+      }
+    });
+  }
+
+  // Scrape URLs sequentially with delay
+  function scrapeUrlSequentially(urls, index, delay, callback) {
+    if (index >= urls.length) {
+      return;
+    }
+
+    var url = urls[index];
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_scrape_single",
+        nonce: mwsData.nonce,
+        url: url,
+      },
+      success: function (response) {
+        if (response.success) {
+          callback(index, urls.length, response.data.data, null);
+        } else {
+          callback(index, urls.length, null, response.data.message || "Unknown error");
+        }
+      },
+      error: function (xhr, status, error) {
+        callback(index, urls.length, null, error);
+      },
+      complete: function () {
+        // Wait before next request
+        if (index < urls.length - 1) {
+          setTimeout(function () {
+            scrapeUrlSequentially(urls, index + 1, delay, callback);
+          }, delay);
+        } else {
+          callback(index, urls.length, null, null);
+        }
+      },
+    });
+  }
+
+  // Display single bulk result item
+  function displayBulkResultItem(data, index, isError) {
+    var $list = $("#mws-bulk-results-list");
+
+    if (isError) {
+      $list.append(
+        '<div class="mws-bulk-item error" style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #dc3232; border-left: 4px solid #dc3232; border-radius: 4px;">' +
+          '<div style="color: #dc3232; font-weight: 600; margin-bottom: 5px;">❌ Failed</div>' +
+          '<div style="font-size: 13px; color: #646970;">' +
+          data.title +
+          "</div>" +
+          '<div style="font-size: 12px; color: #dc3232; margin-top: 5px;">Error: ' +
+          data.error +
+          "</div>" +
+          "</div>"
+      );
+    } else {
+      var coverImg = data.thumbnail_url
+        ? '<img src="' + data.thumbnail_url + '" style="width: 80px; height: 120px; object-fit: cover; border-radius: 4px; margin-right: 15px;">'
+        : '<div style="width: 80px; height: 120px; background: #f0f0f1; border-radius: 4px; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 32px;">📚</div>';
+
+      var genresBadges = "";
+      if (data.genres && data.genres.length) {
+        genresBadges = data.genres
+          .slice(0, 5)
+          .map(function (g) {
+            return '<span style="display: inline-block; padding: 2px 8px; background: #f0f0f1; border-radius: 3px; font-size: 11px; margin-right: 4px; margin-top: 4px;">' + g + "</span>";
+          })
+          .join("");
+      }
+
+      $list.append(
+        '<div class="mws-bulk-item" data-index="' +
+          index +
+          '" style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #c3c4c7; border-left: 4px solid #2271b1; border-radius: 4px; display: flex;">' +
+          '<div style="flex-shrink: 0;">' +
+          coverImg +
+          "</div>" +
+          '<div style="flex: 1; min-width: 0;">' +
+          '<h4 style="margin: 0 0 5px 0; font-size: 15px;">' +
+          data.title +
+          "</h4>" +
+          (data.alternative_title ? '<div style="font-size: 12px; color: #646970; margin-bottom: 8px;">' + data.alternative_title + "</div>" : "") +
+          '<div style="margin-bottom: 8px;">' +
+          '<span style="display: inline-block; padding: 3px 8px; background: #2271b1; color: #fff; border-radius: 3px; font-size: 11px; margin-right: 6px;">' +
+          (data.status || "Ongoing") +
+          "</span>" +
+          '<span style="display: inline-block; padding: 3px 8px; background: #f0f0f1; border-radius: 3px; font-size: 11px; margin-right: 6px;">' +
+          (data.type || "Manhwa") +
+          "</span>" +
+          '<span style="display: inline-block; padding: 3px 8px; background: #f0f0f1; border-radius: 3px; font-size: 11px;">' +
+          "📚 " +
+          (data.total_chapters || 0) +
+          " Ch" +
+          "</span>" +
+          (data.rating ? ' <span style="display: inline-block; padding: 3px 8px; background: #ffb900; color: #fff; border-radius: 3px; font-size: 11px; margin-left: 6px;">⭐ ' + data.rating + "</span>" : "") +
+          "</div>" +
+          '<div style="margin-bottom: 8px;">' +
+          genresBadges +
+          "</div>" +
+          '<div style="font-size: 13px; color: #646970; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">' +
+          (data.description || "") +
+          "</div>" +
+          "</div>" +
+          "</div>"
+      );
+    }
+  }
+
+  // Bulk import all
+  $("#mws-bulk-import-btn").on("click", function () {
+    if (!mwsBulkScrapedData || mwsBulkScrapedData.length === 0) {
+      showNotice("No data to import", "error");
+      return;
+    }
+
+    var $spinner = $("#mws-bulk-import-spinner");
+    var $btn = $(this);
+    var downloadCover = $("#mws-bulk-download-cover").is(":checked");
+    var createPost = $("#mws-bulk-create-post").is(":checked");
+
+    if (!confirm("Import " + mwsBulkScrapedData.length + " manhwa?")) {
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_import_manhwa",
+        nonce: mwsData.nonce,
+        data: JSON.stringify(mwsBulkScrapedData),
+        download_cover: downloadCover ? "true" : "false",
+        create_post: createPost ? "true" : "false",
+      },
+      success: function (response) {
+        if (response.success) {
+          showNotice(response.data.message, "success");
+          displayImportResult(response.data.result);
+        } else {
+          showNotice(response.data.message || mwsData.strings.error, "error");
+        }
+      },
+      error: function (xhr, status, error) {
+        showNotice(mwsData.strings.error + ": " + error, "error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  });
+
+  // Bulk export JSON
+  $("#mws-bulk-export-json-btn").on("click", function () {
+    if (!mwsBulkScrapedData || mwsBulkScrapedData.length === 0) {
+      showNotice("No data to export", "error");
+      return;
+    }
+
+    var json = JSON.stringify(
+      {
+        export_date: new Date().toISOString(),
+        version: "1.0",
+        source: "Manhwa Metadata Scraper",
+        count: mwsBulkScrapedData.length,
+        manhwa: mwsBulkScrapedData,
+      },
+      null,
+      2
+    );
+
+    downloadFile(json, "manhwa-bulk-export-" + Date.now() + ".json");
+    showNotice("Exported " + mwsBulkScrapedData.length + " manhwa to JSON", "success");
+  });
+
+  // =====================================================
+  // Bulk Scrape Page
+  // =====================================================
+
+  $("#mws-bulk-form").on("submit", function (e) {
+    e.preventDefault();
+
+    var source = $("#mws-source").val();
+    var pages = $("#mws-pages").val();
+    var scrapeDetails = $("#mws-scrape-details").is(":checked");
+    var $spinner = $("#mws-bulk-spinner");
+    var $btn = $("#mws-bulk-scrape-btn");
+
+    if (!source) {
+      showNotice("Please select a source", "error");
+      return;
+    }
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+
+    $("#mws-progress-section").show();
+    $("#mws-bulk-results").hide();
+    $("#mws-bulk-json-section").hide();
+
+    updateProgress(0, "Starting bulk scrape...");
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_scrape_bulk",
+        nonce: mwsData.nonce,
+        source: source,
+        pages: pages,
+        scrape_details: scrapeDetails ? "true" : "false",
+      },
+      success: function (response) {
+        if (response.success) {
+          mwsBulkData = response.data.data.items;
+          updateProgress(100, "Complete!");
+          displayBulkResults(response.data.data);
+          showNotice(response.data.message, "success");
+        } else {
+          updateProgress(0, "Error: " + response.data.message);
+          showNotice(response.data.message || mwsData.strings.error, "error");
+        }
+      },
+      error: function (xhr, status, error) {
+        updateProgress(0, "Error: " + error);
+        showNotice(mwsData.strings.error + ": " + error, "error");
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  });
+
+  function updateProgress(percent, text) {
+    $("#mws-progress-fill").css("width", percent + "%");
+    $("#mws-progress-text").text(text);
+  }
+
+  function displayBulkResults(data) {
+    // Summary
+    var $summary = $("#mws-results-summary").empty();
+    $summary.append("<div><strong>" + data.count + "</strong><br>Items Found</div>");
+    $summary.append("<div><strong>" + data.pages_scraped + "</strong><br>Pages Scraped</div>");
+    if (data.errors && data.errors.length) {
+      $summary.append('<div style="color: #dc3232;"><strong>' + data.errors.length + "</strong><br>Errors</div>");
+    }
+
+    // Table
+    var $tbody = $("#mws-results-body").empty();
+    data.items.forEach(function (item, index) {
+      var cover = item.thumbnail_url || item.image || "";
+      var coverImg = cover ? '<img src="' + cover + '" style="width: 50px; height: auto;">' : "-";
+
+      $tbody.append(
+        '<tr data-index="' +
+          index +
+          '">' +
+          '<td class="check-column"><input type="checkbox" class="mws-result-check"></td>' +
+          "<td>" +
+          coverImg +
+          "</td>" +
+          "<td>" +
+          (item.title || item.slug) +
+          "</td>" +
+          "<td>" +
+          (item.type || "-") +
+          "</td>" +
+          "<td>" +
+          (item.total_chapters || "-") +
+          "</td>" +
+          '<td><span class="mws-status-badge ' +
+          (item.status || "ongoing") +
+          '">' +
+          (item.status || "ongoing") +
+          "</span></td>" +
+          "<td>" +
+          '<button type="button" class="button button-small mws-view-item" data-index="' +
+          index +
+          '">View</button> ' +
+          '<button type="button" class="button button-small mws-import-item" data-index="' +
+          index +
+          '">Import</button>' +
+          "</td>" +
+          "</tr>"
+      );
+    });
+
+    $("#mws-bulk-results").show();
+  }
+
+  // Select all
+  $("#mws-select-all-results, #mws-check-all").on("change", function () {
+    var checked = $(this).is(":checked");
+    $(".mws-result-check").prop("checked", checked);
+    $("#mws-select-all-results, #mws-check-all").prop("checked", checked);
+  });
+
+  // Export all JSON
+  $("#mws-export-all-json").on("click", function () {
+    if (!mwsBulkData || !mwsBulkData.length) {
+      showNotice("No data to export", "error");
+      return;
+    }
+
+    var json = JSON.stringify(
+      {
+        export_date: new Date().toISOString(),
+        version: "1.0",
+        source: "Manhwa Metadata Scraper",
+        manhwa: mwsBulkData,
+      },
+      null,
+      2
+    );
+
+    downloadFile(json, "manhwa-bulk-export-" + Date.now() + ".json");
+
+    $("#mws-bulk-json-output").val(json);
+    $("#mws-bulk-json-section").show();
+  });
+
+  // Copy bulk JSON
+  $("#mws-copy-bulk-json").on("click", function () {
+    var json = $("#mws-bulk-json-output").val();
+    if (json) {
+      copyToClipboard(json);
+    }
+  });
+
+  // View single item
+  $(document).on("click", ".mws-view-item", function () {
+    var index = $(this).data("index");
+    var item = mwsBulkData[index];
+
+    if (item) {
+      var json = JSON.stringify(item, null, 2);
+      $("#mws-bulk-json-output").val(json);
+      $("#mws-bulk-json-section").show();
+      $("html, body").animate(
+        {
+          scrollTop: $("#mws-bulk-json-section").offset().top - 50,
+        },
+        300
+      );
+    }
+  });
+
+  // =====================================================
+  // History Page
+  // =====================================================
+
+  // View data modal
+  $(document).on("click", ".mws-view-data", function () {
+    var data = $(this).data("data");
+
+    try {
+      var formatted = JSON.stringify(JSON.parse(data), null, 2);
+      $("#mws-modal-data").text(formatted);
+    } catch (e) {
+      $("#mws-modal-data").text(data);
+    }
+
+    $("#mws-data-modal").show();
+  });
+
+  // Close modal
+  $(document).on("click", ".mws-modal-close, .mws-modal", function (e) {
+    if (e.target === this || $(e.target).hasClass("mws-modal-close")) {
+      $("#mws-data-modal").hide();
+    }
+  });
+
+  // =====================================================
+  // Settings Page
+  // =====================================================
+
+  // Reset user agents
+  $("#mws-reset-ua").on("click", function () {
+    if (typeof mwsDefaultUserAgents !== "undefined") {
+      $("#user_agents").val(mwsDefaultUserAgents.join("\n"));
+      showNotice("User agents reset to defaults", "success");
+    }
+  });
+
+  // Test all connections
+  $("#mws-test-all-btn").on("click", function () {
+    var $btn = $(this);
+    var $spinner = $("#mws-test-spinner");
+    var $results = $("#mws-test-results");
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+    $results.html("Testing...");
+
+    $.ajax({
+      url: mwsData.ajaxUrl,
+      type: "POST",
+      data: {
+        action: "mws_test_connection",
+        nonce: mwsData.nonce,
+      },
+      success: function (response) {
+        if (response.success) {
+          var html = "<ul>";
+          for (var id in response.data.results) {
+            var result = response.data.results[id];
+            var status = result.success ? '<span style="color: green;">✓ OK (' + result.duration_ms + "ms)</span>" : '<span style="color: red;">✗ Error: ' + result.error + "</span>";
+            html += "<li><strong>" + (result.name || id) + ":</strong> " + status + "</li>";
+          }
+          html += "</ul>";
+          $results.html(html);
+        } else {
+          $results.html('<span style="color: red;">Error testing connections</span>');
+        }
+      },
+      error: function () {
+        $results.html('<span style="color: red;">Error testing connections</span>');
+      },
+      complete: function () {
+        $btn.prop("disabled", false);
+        hideSpinner($spinner);
+      },
+    });
+  });
+
+  // Force update check
+  $("#mws-force-update-check").on("click", function () {
+    var $btn = $(this);
+    var $spinner = $("#mws-update-spinner");
+
+    $btn.prop("disabled", true);
+    showSpinner($spinner);
+
+    // This would need a custom AJAX endpoint
+    setTimeout(function () {
+      $btn.prop("disabled", false);
+      hideSpinner($spinner);
+      showNotice("Update check initiated. Check the history page for results.", "info");
+    }, 2000);
+  });
+})(jQuery);

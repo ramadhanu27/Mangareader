@@ -1,0 +1,612 @@
+/**
+ * Manhwa Scraper Admin CSS
+ */
+
+/* =====================================================
+   Layout & General
+   ===================================================== */
+
+.mws-wrap {
+  margin: 20px 20px 20px 2px;
+}
+
+.mws-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 23px;
+  font-weight: 400;
+  margin: 0 0 20px 0;
+  padding: 9px 0 4px 0;
+  line-height: 1.3;
+}
+
+.mws-title .dashicons {
+  font-size: 30px;
+  width: 30px;
+  height: 30px;
+}
+
+.mws-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.mws-col-6 {
+  flex: 1;
+  min-width: 400px;
+}
+
+.mws-col-12 {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .mws-col-6 {
+    flex: 0 0 100%;
+  }
+}
+
+/* =====================================================
+   Bulk Import List
+   ===================================================== */
+
+.mws-bulk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mws-bulk-item {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mws-bulk-item:hover:not(.error) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* =====================================================
+   Cards
+   ===================================================== */
+
+.mws-card {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.mws-card h2 {
+  margin-top: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.mws-card h3 {
+  margin-top: 0;
+}
+
+/* =====================================================
+   Stats Grid
+   ===================================================== */
+
+.mws-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.mws-stat-card {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.mws-stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mws-stat-icon .dashicons {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+}
+
+.mws-stat-icon.success {
+  background: linear-gradient(135deg, #46b450, #35a040);
+}
+.mws-stat-icon.primary {
+  background: linear-gradient(135deg, #0073aa, #005a87);
+}
+.mws-stat-icon.warning {
+  background: linear-gradient(135deg, #ffb900, #e5a600);
+}
+.mws-stat-icon.info {
+  background: linear-gradient(135deg, #00a0d2, #0085b3);
+}
+
+.mws-stat-content h3 {
+  margin: 0;
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.mws-stat-content p {
+  margin: 5px 0 0 0;
+  color: #646970;
+}
+
+/* =====================================================
+   Badges & Status
+   ===================================================== */
+
+.mws-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 3px;
+  background: #2271b1;
+  color: #fff;
+}
+
+.mws-badge.secondary {
+  background: #646970;
+}
+
+.mws-status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 3px;
+}
+
+.mws-status-badge.success {
+  background: #d4edda;
+  color: #155724;
+}
+.mws-status-badge.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+.mws-status-badge.updated {
+  background: #cce5ff;
+  color: #004085;
+}
+.mws-status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* =====================================================
+   Source List
+   ===================================================== */
+
+.mws-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mws-source-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #f6f7f7;
+  border-radius: 4px;
+}
+
+.mws-source-info {
+  flex: 1;
+}
+
+.mws-source-info strong {
+  display: block;
+}
+
+.mws-source-url {
+  font-size: 12px;
+  color: #646970;
+}
+
+.mws-source-list-simple {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mws-source-list-simple li {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.mws-source-list-simple li:last-child {
+  border-bottom: none;
+}
+
+.mws-source-list-simple code {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+/* =====================================================
+   Quick Actions
+   ===================================================== */
+
+.mws-quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mws-quick-actions .button-hero {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mws-quick-actions .dashicons {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+/* =====================================================
+   Tables
+   ===================================================== */
+
+.mws-truncate {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =====================================================
+   Preview Section
+   ===================================================== */
+
+.mws-preview-content {
+  margin-bottom: 20px;
+}
+
+.mws-preview-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.mws-preview-cover {
+  flex: 0 0 150px;
+}
+
+.mws-preview-cover img {
+  width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mws-preview-info {
+  flex: 1;
+}
+
+.mws-preview-info h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+}
+
+.mws-preview-meta {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.mws-preview-genres {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.mws-preview-genres .mws-badge {
+  background: #f0f0f1;
+  color: #3c434a;
+  font-weight: normal;
+}
+
+.mws-preview-description {
+  color: #646970;
+  line-height: 1.6;
+}
+
+/* =====================================================
+   Chapters
+   ===================================================== */
+
+.mws-chapters-preview h4 {
+  margin-bottom: 10px;
+}
+
+.mws-chapters-list {
+  max-height: 200px;
+  overflow-y: auto;
+  background: #f6f7f7;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.mws-chapter-item {
+  padding: 5px 0;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 13px;
+}
+
+.mws-chapter-item:last-child {
+  border-bottom: none;
+}
+
+.mws-chapter-number {
+  font-weight: 600;
+  margin-right: 10px;
+}
+
+.mws-chapter-date {
+  color: #646970;
+  font-size: 12px;
+  float: right;
+}
+
+/* =====================================================
+   Import Options & Actions
+   ===================================================== */
+
+.mws-import-options {
+  background: #f6f7f7;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.mws-import-options h4 {
+  margin: 0 0 10px 0;
+}
+
+.mws-import-options label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.mws-import-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.mws-import-actions .spinner {
+  float: none;
+  margin: 0;
+}
+
+/* =====================================================
+   Progress Bar
+   ===================================================== */
+
+.mws-progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #f0f0f1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mws-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2271b1, #135e96);
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+.mws-progress-text {
+  margin-top: 10px;
+  color: #646970;
+  text-align: center;
+}
+
+/* =====================================================
+   Results
+   ===================================================== */
+
+.mws-results-summary {
+  display: flex;
+  gap: 20px;
+  padding: 15px;
+  background: #f6f7f7;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.mws-results-summary strong {
+  font-size: 24px;
+  display: block;
+}
+
+/* =====================================================
+   Filters
+   ===================================================== */
+
+.mws-filters {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.mws-filters label {
+  font-weight: 600;
+}
+
+/* =====================================================
+   Pagination
+   ===================================================== */
+
+.mws-pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.mws-pagination .page-numbers {
+  display: inline-block;
+  padding: 5px 10px;
+  margin: 0 2px;
+  border: 1px solid #c3c4c7;
+  background: #fff;
+  color: #2271b1;
+  text-decoration: none;
+}
+
+.mws-pagination .page-numbers.current {
+  background: #2271b1;
+  color: #fff;
+  border-color: #2271b1;
+}
+
+/* =====================================================
+   Modal
+   ===================================================== */
+
+.mws-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mws-modal-content {
+  background: #fff;
+  border-radius: 4px;
+  padding: 20px;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: auto;
+  position: relative;
+}
+
+.mws-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #646970;
+}
+
+.mws-modal-close:hover {
+  color: #1d2327;
+}
+
+.mws-json-display {
+  background: #1d2327;
+  color: #50fa7b;
+  padding: 15px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 400px;
+}
+
+/* =====================================================
+   Notices
+   ===================================================== */
+
+.mws-notice {
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.mws-notice.notice-info {
+  background: #e7f5fe;
+  border-left: 4px solid #00a0d2;
+}
+
+.mws-notice.notice-warning {
+  background: #fff8e5;
+  border-left: 4px solid #ffb900;
+}
+
+.mws-notice.notice-success {
+  background: #ecf7ed;
+  border-left: 4px solid #46b450;
+}
+
+.mws-notice.notice-error {
+  background: #fef1f1;
+  border-left: 4px solid #dc3232;
+}
+
+/* =====================================================
+   Spinner Override
+   ===================================================== */
+
+.mws-wrap .spinner {
+  float: none;
+  margin: 0 5px;
+  vertical-align: middle;
+}
+
+.mws-wrap .spinner.is-active {
+  visibility: visible;
+}
+
+/* =====================================================
+   Responsive Adjustments
+   ===================================================== */
+
+@media (max-width: 782px) {
+  .mws-preview-header {
+    flex-direction: column;
+  }
+
+  .mws-preview-cover {
+    flex: 0 0 auto;
+    text-align: center;
+  }
+
+  .mws-preview-cover img {
+    max-width: 200px;
+  }
+
+  .mws-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

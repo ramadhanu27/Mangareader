@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff5722"/>
+      <stop offset="100%" style="stop-color:#e64a19"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect fill="url(#bgGrad)" width="300" height="400" rx="8"/>
+  
+  <!-- Decorative pattern -->
+  <g opacity="0.05">
+    <circle cx="50" cy="50" r="80" fill="#fff"/>
+    <circle cx="250" cy="350" r="100" fill="#fff"/>
+  </g>
+  
+  <!-- Book/Manga icon -->
+  <g transform="translate(100, 130)">
+    <!-- Book base -->
+    <path d="M10 10 L10 100 L90 100 L90 20 L80 10 Z" fill="url(#iconGrad)" opacity="0.9"/>
+    <!-- Book fold -->
+    <path d="M80 10 L80 20 L90 20 Z" fill="#ff8a65"/>
+    <!-- Book lines -->
+    <line x1="25" y1="35" x2="75" y2="35" stroke="#fff" stroke-width="3" opacity="0.5"/>
+    <line x1="25" y1="50" x2="75" y2="50" stroke="#fff" stroke-width="3" opacity="0.5"/>
+    <line x1="25" y1="65" x2="60" y2="65" stroke="#fff" stroke-width="3" opacity="0.5"/>
+  </g>
+  
+  <!-- Question mark -->
+  <text x="150" y="290" text-anchor="middle" fill="#ff5722" font-family="Arial, sans-serif" font-size="28" font-weight="bold">?</text>
+  
+  <!-- Text -->
+  <text x="150" y="330" text-anchor="middle" fill="#666" font-family="Arial, sans-serif" font-size="14" font-weight="500">No Cover Available</text>
+  
+  <!-- Border decoration -->
+  <rect x="4" y="4" width="292" height="392" rx="6" fill="none" stroke="#333" stroke-width="1" opacity="0.3"/>
+</svg>
