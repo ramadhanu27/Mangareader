@@ -4,6 +4,64 @@ A modern, all-in-one manga/manhwa reader WordPress theme. No extra plugin requir
 
 ---
 
+## 📸 Screenshots
+
+### 💻 Desktop View
+
+<details>
+<summary>Klik untuk melihat screenshot Desktop</summary>
+
+**Homepage (Hero Slider & Latest Updates)**
+![Homepage Hero](docs/screenshots/desktop-homepage-hero.jpeg)
+![Homepage Latest Grid](docs/screenshots/desktop-homepage-latest-grid.jpeg)
+![Homepage Latest List](docs/screenshots/desktop-homepage-latest-list.jpeg)
+
+**Manhwa Detail & Chapter Reader**
+![Manhwa Detail](docs/screenshots/desktop-manhwa-detail.jpeg)
+![Chapter Reader](docs/screenshots/desktop-chapter-reader.jpeg)
+
+**Other Pages**
+![A-Z List](docs/screenshots/desktop-az-list.jpeg)
+![Manga List](docs/screenshots/desktop-manga-list.jpeg)
+![Bookmarks](docs/screenshots/desktop-bookmarks.jpeg)
+
+</details>
+
+### 📱 Mobile & Tablet View
+
+<details>
+<summary>Klik untuk melihat screenshot Mobile & Tablet</summary>
+
+**Mobile View**
+
+<p align="center">
+  <img src="docs/screenshots/mobile-homepage.jpeg" width="30%" />
+  <img src="docs/screenshots/mobile-chapter-selector.jpeg" width="30%" /> 
+  <img src="docs/screenshots/mobile-chapter-reader.jpeg" width="30%" />
+</p>
+
+**Tablet View**
+![Tablet Homepage](docs/screenshots/tablet-homepage.jpeg)
+![Tablet Manhwa Info](docs/screenshots/tablet-manhwa-detail-info.jpeg)
+![Tablet Manhwa Chapters](docs/screenshots/tablet-manhwa-detail-chapters.jpeg)
+
+</details>
+
+### ⚙️ Manhwa CMS (Admin Panel)
+
+<details>
+<summary>Klik untuk melihat screenshot Admin Panel</summary>
+
+![Admin Dashboard](docs/screenshots/desktop-admin-dashboard.jpeg)
+![Admin Manhwa CMS](docs/screenshots/desktop-admin-manhwa-cms.jpeg)
+![Admin Edit Manhwa](docs/screenshots/desktop-admin-edit-manhwa.jpeg)
+![Admin Chapter Manager](docs/screenshots/desktop-admin-chapter-manager.jpeg)
+![Admin Statistics](docs/screenshots/desktop-admin-statistics.jpeg)
+
+</details>
+
+---
+
 ## ✨ Features
 
 ### 🎨 Core & Design
