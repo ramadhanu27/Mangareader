@@ -452,8 +452,8 @@ flavor-flavor/
 
 ## 📝 Credits
 
-- Original Template: ZeistManga v5.5 by EmissionHex
-- WordPress Conversion: Flavor
+- Original Template (Blogger): ZeistManga v5.5 by EmissionHex
+- WordPress Conversion: RD
 - Icons: Material Symbols, Feather Icons
 - Font: Poppins (Google Fonts)
 

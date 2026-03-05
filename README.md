@@ -142,8 +142,8 @@ _(Note: If you clone the repository, the zip files are already included in the r
 
 ## 📝 Credits
 
-- Original Concept/Template: ZeistManga v5.5 by EmissionHex
-- WordPress Integration & Core Mechanics: Flavor
+- Original Concept/Template (Blogger): ZeistManga v5.5 by EmissionHex
+- WordPress Conversion & Integration: RD
 - Font: Poppins (Google Fonts)
 
 ## 📄 License
